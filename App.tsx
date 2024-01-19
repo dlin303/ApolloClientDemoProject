@@ -1,15 +1,41 @@
-import React from 'react';
-import {Button, SafeAreaView, Text, useColorScheme} from 'react-native';
+import React, { useEffect } from 'react';
+import {Button, SafeAreaView, Text} from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
-import {ApolloClient, InMemoryCache, ApolloProvider, gql, useQuery} from '@apollo/client';
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  gql,
+  useQuery,
+  TypePolicies,
+} from '@apollo/client';
+
+const typePolicies: TypePolicies = {
+  Language: {
+    fields: {
+      code: {
+        read(code) {
+          const rand = Math.floor(Math.random() * 100);
+          const computed = `${code} ${rand}`;
+          console.log(
+            `TypePolicy Invoked: Returning computed value for code: ${computed}`,
+          );
+          return computed;
+        },
+      },
+    },
+  },
+};
+
+const cache = new InMemoryCache({typePolicies});
 
 const client = new ApolloClient({
   uri: 'https://countries.trevorblades.com/graphql',
-  cache: new InMemoryCache(),
+  cache: cache,
 });
 
 const getCountryLanguagesQuery = gql(`
@@ -39,11 +65,19 @@ function Home({navigation}) {
 function Countries() {
   const {data} = useQuery(getCountryLanguagesQuery);
 
-  console.log('Data', JSON.stringify(data));
+  // Uncomment for cached data
+  // const cachedData = client.readQuery({query: getCountryLanguagesQuery});
+  // console.log('Cached Data', JSON.stringify(cachedData));
+
+  console.log('Server Data', JSON.stringify(data));
+
+  const output = data?.country.languages.map(lang => lang.code);
 
   return (
     <SafeAreaView style={{backgroundColor: Colors.lighter}}>
-      <Text>Stuff Here</Text>
+      <Text>
+        {output ? output.join('\n') : 'No response from demo graphQL server'}
+      </Text>
     </SafeAreaView>
   );
 }
