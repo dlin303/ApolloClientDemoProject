@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import {Button, SafeAreaView, Text} from 'react-native';
+import {Button, Platform, SafeAreaView, Text} from 'react-native';
 
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 import {NavigationContainer} from '@react-navigation/native';
@@ -19,12 +19,19 @@ const typePolicies: TypePolicies = {
     fields: {
       code: {
         read(code) {
-          const rand = Math.floor(Math.random() * 100);
-          const computed = `${code} ${rand}`;
-          console.log(
-            `TypePolicy Invoked: Returning computed value for code: ${computed}`,
-          );
-          return computed;
+          const rand = Math.random();
+          if (rand >= 0.5) {
+            return code;
+          }
+
+          console.log('Random number < 0.5: ', rand, 'returning undefined');
+
+          return undefined;
+        },
+      },
+      testField: {
+        read() {
+          return 'This is a test string';
         },
       },
     },
@@ -40,10 +47,10 @@ const client = new ApolloClient({
 
 const getCountryLanguagesQuery = gql(`
   query Query {
-    country(code: "BR") {
+    country(code: "AF") {
       languages {
-        code 
-        name
+        code
+        testField @client
       }
     }
   }
@@ -63,15 +70,14 @@ function Home({navigation}) {
 }
 
 function Countries() {
-  const {data} = useQuery(getCountryLanguagesQuery);
-
-  // Uncomment for cached data
-  // const cachedData = client.readQuery({query: getCountryLanguagesQuery});
-  // console.log('Cached Data', JSON.stringify(cachedData));
+  const {data} = useQuery(getCountryLanguagesQuery, {
+    fetchPolicy: 'cache-first',
+    nextFetchPolicy: 'cache-only',
+  });
 
   console.log('Server Data', JSON.stringify(data));
 
-  const output = data?.country.languages.map(lang => lang.code);
+  const output = data?.country?.languages?.map(lang => `${lang.code} --- ${lang.testField}`);
 
   return (
     <SafeAreaView style={{backgroundColor: Colors.lighter}}>
